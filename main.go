@@ -7,9 +7,16 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"context"
+	"time"
 
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/bson"
 )
+
+
 
 type event struct {
 	ID          string `json:"ID"`
@@ -126,7 +133,20 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	collection := client.Database("testing").Collection("numbers")
+
+
+	res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+	id := res.InsertedID
+
 	router := mux.NewRouter().StrictSlash(true)
+
+	if err != nil {
+		fmt.Println("An error occured %v", err)
+	}
+	fmt.Println("Created a new stuff %v", id)
 
 	router.HandleFunc("/", homeLink)
 	router.HandleFunc("/event", createEvent).Methods("POST")
